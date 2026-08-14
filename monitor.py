@@ -27,6 +27,7 @@ from zoneinfo import ZoneInfo
 # ===== 監視対象(必要なら書き換え) =====
 CHANNEL_IDS = [
     "UCjrN-o1HlLk22qcauIKDtlQ",  # 参政党【公式】
+    "UCgL2ASs0dGsAbph0iCZhJcg",  # 参政党 国会質問チャンネル【公式】
 ]
 STATE_FILE = "state/notified.json"
 # =======================================
