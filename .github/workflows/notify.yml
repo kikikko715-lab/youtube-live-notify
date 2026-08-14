@@ -1,0 +1,36 @@
+name: youtube-live-notify
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # 6時間ごと(UTC基準)。頻度を上げたいなら "0 */3 * * *" など
+  workflow_dispatch:          # 手動実行ボタン(テスト用)
+
+permissions:
+  contents: write             # 通知済みリスト(state)を書き戻すため
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Python を用意
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 監視スクリプトを実行
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python monitor.py
+
+      - name: 通知済みリストを保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/notified.json 2>/dev/null || true
+          git commit -m "update notified state" || echo "変更なし"
+          git push || echo "pushするものなし"
