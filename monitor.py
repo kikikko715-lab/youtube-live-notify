@@ -18,6 +18,7 @@ import smtplib
 import ssl
 import urllib.parse
 import urllib.request
+from calendar_sync import event_body, sync_pending
 from datetime import datetime
 from email.header import Header
 from email.mime.multipart import MIMEMultipart
@@ -32,9 +33,9 @@ CHANNEL_IDS = [
 STATE_FILE = "state/notified.json"
 # =======================================
 
-API_KEY = os.environ["YOUTUBE_API_KEY"]
-GMAIL_ADDRESS = os.environ["GMAIL_ADDRESS"]
-GMAIL_APP_PASSWORD = os.environ["GMAIL_APP_PASSWORD"]
+API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
+GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS", "")
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
 
 
 def get_json(url):
@@ -200,20 +201,38 @@ def send_email(fresh):
 
 def main():
     notified = load_notified()
-    upcoming = fetch_upcoming()
+    fetch_failed = False
+    try:
+        upcoming = fetch_upcoming()
+    except Exception:
+        fetch_failed = True
+        upcoming = []
+        print("YouTube fetch failed; pending Calendar operations can still retry")
     fresh = [v for v in upcoming if v["videoId"] not in notified]
     print(f"upcoming={len(upcoming)} fresh={len(fresh)}")
-
-    if not fresh:
-        print("新しい配信予定はありませんでした。")
+    if os.environ.get("PREVIEW_ONLY", "true").lower() == "true":
+        print(json.dumps([event_body(v) for v in upcoming], ensure_ascii=False, indent=2))
+        if fetch_failed: raise RuntimeError("YouTube fetch failed")
+        print("Preview only: no email, calendar or state writes")
         return
-
-    send_email(fresh)
-    for v in fresh:
-        notified.add(v["videoId"])
-    save_notified(notified)
-    print(f"通知しました: {len(fresh)}件")
+    # Calendar failures must not prevent the existing email notification.
+    calendar_failures = 0
+    try:
+        calendar_failures = sync_pending(upcoming)
+    except Exception:
+        calendar_failures = 1
+        print("Calendar sync failed; check credentials, access and pending state")
+    if fresh:
+        send_email(fresh)
+        for v in fresh:
+            notified.add(v["videoId"])
+        save_notified(notified)
+        print(f"通知しました: {len(fresh)}件")
+    if calendar_failures or fetch_failed:
+        raise RuntimeError("Calendar sync incomplete; retry on next run")
 
 
 if __name__ == "__main__":
     main()
+
+
