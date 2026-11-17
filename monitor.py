@@ -29,6 +29,7 @@ from zoneinfo import ZoneInfo
 CHANNEL_IDS = [
     "UCjrN-o1HlLk22qcauIKDtlQ",  # 参政党【公式】
     "UCgL2ASs0dGsAbph0iCZhJcg",  # 参政党 国会質問チャンネル【公式】
+    "UCJc_jL0yOBGychLgiTCGtPw",  # 国民民主党【公式】@DPFPofficial（2026-11-17 手取りの国会のため追加）
 ]
 STATE_FILE = "state/notified.json"
 # =======================================
